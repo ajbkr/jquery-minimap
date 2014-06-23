@@ -47,11 +47,12 @@
 
   $.fn.minimap = function(options) {
     var defaults = {
-      highlight: 'rgba(135, 206, 250, 0.5)',
-      lowlight:  'rgba(0, 0, 0, 0.5)',
-      location:  'top right',
-      width:     '160px',
-      zIndex:    '9999'
+      highlight:     'rgba(135, 206, 250, 0.5)',
+      lowlight:      'rgba(0, 0, 0, 0.5)',
+      location:      'top right',
+      preventSelect: true,
+      width:         '160px',
+      zIndex:        9999
     };
 
     var settings = $.extend({}, defaults, options);
@@ -136,6 +137,8 @@
               window.clearTimeout(timeoutID2);
               timeoutID2 = null;
             }
+
+            $canvas.css('cursor', 'pointer');
           });
 
           $canvas.mouseout(function() {
@@ -151,16 +154,41 @@
             }, 1000 * 2);	// 2 second delay before fade
           });
 
-          $canvas.click(function(e) {
-            var offset = $(this).offset();
+          var isDragging = false;
 
-            var top = Math.round((e.pageY - offset.top) / $(this).height() *
-             $(document).height());
+          if (settings.preventSelect) {
+            $(window).mousedown(function(e) { e.preventDefault(); });
+          }
 
-            // Subtract half-height of window (to centre).
-            top -= Math.round($(window).height() / 2);
+          $canvas.mousedown(function(e) {
+            var that = this;
 
-            $('body, html').scrollTop(top);
+            var update = function(e) {
+              var offset = $(that).offset();
+
+              var top = Math.round((e.pageY - offset.top) / $(that).height() *
+               $(document).height());
+
+              // Subtract half-height of window (to centre).
+              top -= Math.round($(window).height() / 2);
+
+              $('body, html').scrollTop(top);
+            };
+
+            update(e);
+
+            $canvas.mousemove(function(e) {
+              isDragging = true;
+              $canvas.css('cursor', 'crosshair');
+              update(e);
+            });
+          });
+
+          $(window).mouseup(function(e) {
+            var wasDragging = isDragging;
+            isDragging = false;
+            $canvas.css('cursor', 'pointer');
+            $canvas.unbind('mousemove');
           });
 
           $canvas.hide();
